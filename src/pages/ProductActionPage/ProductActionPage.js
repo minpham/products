@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import callApi from '../../utils/apiCaller';
 import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { actAddProductRequest, actItemEditingRequest, actUpdateProductRequest } from '../../actions/index';
 
 class ProductActionPage extends Component {
 	constructor(props) {
@@ -14,17 +15,23 @@ class ProductActionPage extends Component {
 	}
 	
 	componentDidMount() {
-		var { match } = this.props;
-		var { id }  = match.params;
-		callApi(`products/${id}`, 'GET', null).then(res => {
-			var data = res.data;
-			this.setState({
-				id: data.id,
-				txtName: data.name,
-				txtPrice: data.price,
-				ckbStatus: data.status
+		var { match, onGetProduct } = this.props;
+		if(match) {
+			var { id }  = match.params;
+			onGetProduct(id);
+		}
+	}
+
+	componentWillReceiveProps(nextProps) {
+		if(nextProps && nextProps.itemEditing) {
+			var { itemEditing } = nextProps;
+				this.setState({
+				id: itemEditing.id,
+				txtName: itemEditing.name,
+				txtPrice: itemEditing.price,
+				ckbStatus: itemEditing.status
 			})
-		})
+		}
 	}
 
 	onChange = (e) => {
@@ -38,47 +45,32 @@ class ProductActionPage extends Component {
 
 	onSave = (e) => {
 		e.preventDefault();
-			var { 	
-					state : {
-						id,
-						txtName,
-						txtPrice,
-						ckbStatus
-					},
-					props : {
-						history
-					}		
-				} = this;
+		var { id, txtName, txtPrice, ckbStatus } = this.state;
+		var { history, onAddProduct, onUpdateProduct } = this.props;
 		ckbStatus = ckbStatus === "" ? false : ckbStatus;
-		if(id) {
-			callApi(`products/${id}`, 'PUT', {
-				name: txtName,
-				price: txtPrice,
-				status: ckbStatus
-			}).then(res => {
-				history.goBack();
-			})
-		}else {
-			callApi('products', 'POST', {
-				name: txtName,
-				price: txtPrice,
-				status: ckbStatus
-			}).then(res => {
-				history.goBack();
-			})
+		var product = {
+			id: id,
+			name: txtName,
+			price: txtPrice,
+			status: ckbStatus
 		}
+		if(id) {
+			onUpdateProduct(product);
+		} else {
+			if(product.name !== "" && product.price !== "") onAddProduct(product);
+		}
+		history.goBack();
 	}
 
     render() {
-		var {
-			state: {
+		var { state: {
 				txtName,
 				txtPrice,
 				ckbStatus,
 			},
 			onChange,
 			onSave
-		} = this;
+			} = this;
         return (
             <div className="col-xs-6 col-sm-6 col-md-6 col-lg-6">
                 <form onSubmit={onSave}>
@@ -129,4 +121,23 @@ class ProductActionPage extends Component {
     }
 }
 
-export default ProductActionPage;
+const mapStateToProps = state => {
+	return {
+		itemEditing: state.itemEditing
+	}
+}
+
+const mapDispatchToProps = (dispatch, props) => {
+	return {
+		onAddProduct: (product) => {
+			dispatch(actAddProductRequest(product));
+		},
+		onGetProduct: (product) => {
+			dispatch(actItemEditingRequest(product));
+		},
+		onUpdateProduct: (product) => {
+			dispatch(actUpdateProductRequest(product));
+		}
+	}
+}
+export default connect(mapStateToProps, mapDispatchToProps)(ProductActionPage);

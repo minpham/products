@@ -1,53 +1,22 @@
 import React, { Component } from 'react';
 import ProductList from '../../components/ProductList/ProductList';
 import ProductItem from '../../components/ProductItem/ProductItem';
-import { connect } from 'react-redux';
-import callApi from '../../utils/apiCaller';
 import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { actFetchProductsRequest, actDeleteProductRequest } from '../../actions/index';
 
 class ProductListPage extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            products: []
-        }
-    }
-  
+
     componentDidMount() {
-        callApi('products','GET',null).then(res => {
-            this.setState({
-                products: res.data
-            })
-        })
+       this.props.fetchAllProducts();
     }
     
     onDelete = (id) => {
-        var { products } = this.state;
-        callApi(`products/${id}`, 'DELETE', null).then(res => {
-            if(res.status === 200) {
-                var index = this.findIndex(products, id);
-                if(index !== -1) {
-                    products.splice(index, 1);
-                    this.setState({
-                        products
-                    })
-                }
-            }
-        })
+        this.props.fetchDeleteProduct(id);
     }
 
-    findIndex = (products, id) => {
-        var result = -1;
-        products.forEach((product, index) => {
-            if(product.id === id) {
-                result = index;
-            }
-        })
-        return result;
-    }
     render() {
-        var {   state : { products } 
-            } = this;
+        var { products } = this.props;
         return (
             <div className="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                 <Link to="/product/add" className="btn btn-info">
@@ -87,4 +56,15 @@ const mapStateToProps = state => {
         products: state.products
     }
 }
-export default connect(mapStateToProps,null)(ProductListPage);
+
+const mapDispatchToProps = (dispatch, props) => {
+    return {
+        fetchAllProducts: () => {
+           dispatch(actFetchProductsRequest());
+        },
+        fetchDeleteProduct: (id) => {
+            dispatch(actDeleteProductRequest(id))
+        }
+    }
+}
+export default connect(mapStateToProps,mapDispatchToProps)(ProductListPage);
